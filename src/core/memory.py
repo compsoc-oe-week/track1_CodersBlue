@@ -31,3 +31,10 @@ class Memory:
         if pronoun.lower() in ['them', 'those', 'those files', 'it']:
             return self.last_results
         return None
+
+    def update(self, plan, results):
+        """
+        Updates the memory with the latest plan and results.
+        """
+        self.set_last_plan(plan)
+        self.set_last_results(results)

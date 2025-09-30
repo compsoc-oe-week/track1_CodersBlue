@@ -37,6 +37,9 @@ def main():
     user_intent = " ".join(args.prompt)
     print(persona.greet(user_intent))
 
+    # Initialize memory
+    memory_instance = memory.Memory()
+
     try:
         plan = None
         # 1. Convert natural language to a structured plan
@@ -61,8 +64,8 @@ def main():
         # The executor will preview, ask for confirmation, and then run the commands.
         results = executor.run(plan)
 
-        # 4. (Future) Update memory with the context of this interaction
-        # memory.update(results=results, plan=plan)
+        # 4. Update memory with the context of this interaction
+        memory_instance.update(plan=plan, results=results)
 
         # 5. Summarize the results for the user
         executor.summarize(results)

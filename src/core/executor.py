@@ -27,11 +27,32 @@ def _resolve_path(path: str) -> str:
     """Resolves a path relative to the session's CWD."""
     return os.path.join(SESSION_CWD, os.path.expanduser(path))
 
-def _execute_ls(args):
+def _suggest_best_match(path_not_found: str, match_type: str = 'any') -> str:
+    """Suggests a best match for a path that was not found."""
+    parent_dir = os.path.dirname(path_not_found)
+    target_name = os.path.basename(path_not_found)
+    if not os.path.isdir(parent_dir):
+        return ""
+    try:
+        all_items = os.listdir(parent_dir)
+        candidates = []
+        if match_type == 'dir':
+            candidates = [item for item in all_items if os.path.isdir(os.path.join(parent_dir, item))]
+        else: # 'any' (files or dirs)
+            candidates = all_items
+        best_match = search.find_best_match(target_name, candidates)
+        if best_match:
+            return f" Did you mean '{best_match[0]}'?"
+        return ""
+    except OSError:
+        return ""
+
+def _execute_ls(args, kwargs=None):
     """Lists files and directories."""
     path = _resolve_path(args[0]) if args else SESSION_CWD
     if not os.path.isdir(path):
-        return f"Error: Directory not found at '{path}'"
+        suggestion = _suggest_best_match(path, match_type='dir')
+        return f"Error: Directory not found at '{path}'.{suggestion}"
 
     try:
         items = os.listdir(path)
@@ -45,7 +66,7 @@ def _execute_ls(args):
     except OSError as e:
         return f"Error listing directory '{path}': {e}"
 
-def _execute_cd(args):
+def _execute_cd(args, kwargs=None):
     """Changes the current working directory for the session."""
     global SESSION_CWD
     if not args:
@@ -53,7 +74,8 @@ def _execute_cd(args):
 
     path = _resolve_path(args[0])
     if not os.path.isdir(path):
-        return f"Error: Directory not found at '{path}'"
+        suggestion = _suggest_best_match(path, match_type='dir')
+        return f"Error: Directory not found at '{path}'.{suggestion}"
 
     try:
         os.chdir(path)
@@ -62,11 +84,11 @@ def _execute_cd(args):
     except OSError as e:
         return f"Error changing directory to '{path}': {e}"
 
-def _execute_pwd(args):
+def _execute_pwd(args, kwargs=None):
     """Prints the current working directory."""
     return f"Current directory: {SESSION_CWD}"
 
-def _execute_mkdir(args):
+def _execute_mkdir(args, kwargs=None):
     """Creates a new directory."""
     if not args:
         return "Error: 'mkdir' requires a directory name."
@@ -81,7 +103,7 @@ def _execute_mkdir(args):
     except OSError as e:
         return f"Error creating directory '{path}': {e}"
 
-def _execute_touch(args):
+def _execute_touch(args, kwargs=None):
     """Creates an empty file or updates its timestamp."""
     if not args:
         return "Error: 'touch' requires a filename."
@@ -94,95 +116,125 @@ def _execute_touch(args):
     except OSError as e:
         return f"Error touching file '{path}': {e}"
 
-def _execute_cp(args):
-    """Copies a file or directory."""
+def _execute_cp(args, kwargs=None):
+    """Copies one or more files or directories to a destination."""
     if len(args) < 2:
-        return "Error: 'cp' requires a source and a destination."
+        return "Error: 'cp' requires at least one source and a destination."
+    dest_path = _resolve_path(args[-1])
+    source_paths = [_resolve_path(arg) for arg in args[:-1]]
+    if len(source_paths) > 1 and not os.path.isdir(dest_path):
+        return f"Error: Destination '{dest_path}' is not a directory, which is required for copying multiple items."
+    successes = []
+    errors = []
+    for src_path in source_paths:
+        if not os.path.exists(src_path):
+            suggestion = _suggest_best_match(src_path)
+            errors.append(f"Source '{src_path}' not found.{suggestion}")
+            continue
+        try:
+            if os.path.isdir(src_path):
+                shutil.copytree(src_path, os.path.join(dest_path, os.path.basename(src_path)))
+            else:
+                shutil.copy2(src_path, dest_path)
+            successes.append(src_path)
+        except (shutil.Error, OSError) as e:
+            errors.append(f"Failed to copy '{src_path}': {e}")
+    output = []
+    if successes:
+        output.append(f"Successfully copied {len(successes)} item(s) to '{dest_path}'.")
+    if errors:
+        output.append("Errors occurred:\n" + "\n".join(errors))
+    return "\n".join(output) if output else "No items were copied."
 
-    src = _resolve_path(args[0])
-    dest = _resolve_path(args[1])
-
-    if not os.path.exists(src):
-        return f"Error: Source '{src}' not found."
-
-    try:
-        if os.path.isdir(src):
-            shutil.copytree(src, dest)
-        else:
-            shutil.copy2(src, dest) # copy2 preserves metadata
-        return f"Copied '{src}' to '{dest}'"
-    except (shutil.Error, OSError) as e:
-        return f"Error copying '{src}' to '{dest}': {e}"
-
-def _execute_mv(args):
-    """Moves/renames a file or directory."""
+def _execute_mv(args, kwargs=None):
+    """Moves/renames one or more files or directories to a destination."""
     if len(args) < 2:
-        return "Error: 'mv' requires a source and a destination."
+        return "Error: 'mv' requires at least one source and a destination."
+    dest_path = _resolve_path(args[-1])
+    source_paths = [_resolve_path(arg) for arg in args[:-1]]
+    if len(source_paths) > 1 and not os.path.isdir(dest_path):
+        return f"Error: Destination '{dest_path}' is not a directory, which is required for moving multiple items."
+    successes = []
+    errors = []
+    for src_path in source_paths:
+        if not os.path.exists(src_path):
+            suggestion = _suggest_best_match(src_path)
+            errors.append(f"Source '{src_path}' not found.{suggestion}")
+            continue
+        try:
+            shutil.move(src_path, dest_path)
+            successes.append(src_path)
+        except (shutil.Error, OSError) as e:
+            errors.append(f"Failed to move '{src_path}': {e}")
+    output = []
+    if successes:
+        output.append(f"Successfully moved {len(successes)} item(s) to '{dest_path}'.")
+    if errors:
+        output.append("Errors occurred:\n" + "\n".join(errors))
+    return "\n".join(output) if output else "No items were moved."
 
-    src = _resolve_path(args[0])
-    dest = _resolve_path(args[1])
-
-    if not os.path.exists(src):
-        return f"Error: Source '{src}' not found."
-
-    try:
-        shutil.move(src, dest)
-        return f"Moved '{src}' to '{dest}'"
-    except (shutil.Error, OSError) as e:
-        return f"Error moving '{src}' to '{dest}': {e}"
-
-def _execute_rm(args):
-    """Removes a file or directory."""
+def _execute_rm(args, kwargs=None):
+    """Removes one or more files or directories."""
     if not args:
-        return "Error: 'rm' requires a target path."
-
-    path = _resolve_path(args[0])
-    if not os.path.exists(path):
-        return f"Error: Path '{path}' not found."
-
-    abs_path = os.path.abspath(path)
-    # Safety check for rm is handled by the safety module and confirmation below
-    # if not safety.is_safe_to_delete(abs_path):
-    #     return f"Error: Deletion of '{abs_path}' is not allowed."
-
-    confirm = input(f"Are you sure you want to permanently delete '{abs_path}'? (y/n): ").lower().strip()
-    if confirm != 'y':
-        return f"Deletion of '{abs_path}' cancelled."
-
-    try:
-        if os.path.isdir(path):
-            shutil.rmtree(path)
-            return f"Directory '{abs_path}' and all its contents removed."
+        return "Error: 'rm' requires at least one target path."
+    paths_to_delete = [_resolve_path(arg) for arg in args]
+    existing_paths = []
+    errors = []
+    for path in paths_to_delete:
+        if not os.path.exists(path):
+            suggestion = _suggest_best_match(path)
+            errors.append(f"Path '{os.path.abspath(path)}' not found.{suggestion}")
         else:
-            os.remove(path)
-            return f"File '{abs_path}' removed."
-    except OSError as e:
-        return f"Error removing '{abs_path}': {e}"
+            existing_paths.append(path)
+    if not existing_paths:
+        return "Errors occurred:\n" + "\n".join(errors)
+    abs_paths_to_delete = [os.path.abspath(p) for p in existing_paths]
+    confirm = input(f"Are you sure you want to permanently delete:\n" + "\n".join(abs_paths_to_delete) + "\n(y/n): ").lower().strip()
+    if confirm != 'y':
+        return f"Deletion of {len(existing_paths)} item(s) cancelled."
+    successes = []
+    for path in existing_paths:
+        abs_path = os.path.abspath(path)
+        try:
+            if os.path.isdir(path):
+                shutil.rmtree(path)
+            else:
+                os.remove(path)
+            successes.append(abs_path)
+        except OSError as e:
+            errors.append(f"Error removing '{abs_path}': {e}")
+    output = []
+    if successes:
+        output.append(f"Successfully removed {len(successes)} item(s).")
+    if errors:
+        output.append("Errors occurred:\n" + "\n".join(errors))
+    return "\n".join(output) if output else "No items were removed."
 
-def _execute_find_files(args):
-    """Finds files by name pattern."""
-    if len(args) < 1:
-        return "Error: 'find_files' requires a name pattern."
-
+def _execute_find_files(args, kwargs=None):
+    """Finds files by name pattern, with optional advanced filters."""
+    if kwargs is None:
+        kwargs = {}
+    if not args:
+        return "Error: 'find_files' requires at least a name pattern."
     name_pattern = args[0]
     path = _resolve_path(args[1]) if len(args) > 1 else SESSION_CWD
-
     try:
-        matches = search.find_files(name_pattern, path)
+        matches = search.find_files(name_pattern, path, **kwargs)
         if not matches:
+            if kwargs:
+                filters = ", ".join([f"{k}='{v}'" for k, v in kwargs.items()])
+                return f"No files found matching '{name_pattern}' in '{path}' with filters: {filters}."
             return f"No files found matching '{name_pattern}' in '{path}'."
-        return f"Found files:\n" + "\n".join(matches)
+        return "Found files:\n" + "\n".join(matches)
     except Exception as e:
         return f"Error finding files: {e}"
 
-def _execute_search_in_files(args):
+def _execute_search_in_files(args, kwargs=None):
     """Searches for content within files."""
     if len(args) < 1:
         return "Error: 'search_in_files' requires a content pattern."
-
     content_pattern = args[0]
     path = _resolve_path(args[1]) if len(args) > 1 else SESSION_CWD
-
     try:
         matches = search.search_in_files(content_pattern, path)
         if not matches:
@@ -230,17 +282,37 @@ def run(plan: dict):
     Runs a plan dictionary after safety checks, confirmation, and logging.
     This function replaces the old subprocess-based command execution.
     """
-    # plan = safety.sanitize_plan(plan) # Assumes safety module can clean the plan
     preview(plan)
-
     if not confirm():
         print("Execution cancelled by user.")
         return {"summary": "User cancelled.", "results": []}
 
     results = []
+    last_step_output_files = []
+
     for step in plan.get("steps", []):
         command_name = step.get("cmd")
         args = step.get("args", [])
+        kwargs = step.get("kwargs", {})
+
+        # --- Pronoun Resolution ---
+        resolved_args = []
+        pronoun_error = None
+        for arg in args:
+            if arg == "$results.last":
+                if not last_step_output_files:
+                    pronoun_error = "Used a pronoun like 'them' but the previous step produced no files."
+                    break
+                resolved_args.extend(last_step_output_files)
+            else:
+                resolved_args.append(arg)
+
+        if pronoun_error:
+            results.append({"status": "error", "output": pronoun_error})
+            break
+
+        args = resolved_args
+        # --- End Pronoun Resolution ---
 
         if not command_name:
             results.append({"status": "error", "output": "Step is missing a command."})
@@ -248,10 +320,20 @@ def run(plan: dict):
 
         if command_name in COMMAND_MAP:
             try:
-                output = COMMAND_MAP[command_name](args)
+                output = COMMAND_MAP[command_name](args, kwargs)
                 print(output)
                 results.append({"status": "success", "output": output})
-                log_command(f"{command_name} {' '.join(args)}")
+
+                if command_name == "find_files" and output.startswith("Found files:\n"):
+                    # Handle case where no files are found
+                    file_list = output.strip().split('\n')[1:]
+                    last_step_output_files = [f for f in file_list if f] # Filter out empty strings
+                else:
+                    last_step_output_files = []
+
+                log_args = ' '.join(map(str, args))
+                log_kwargs = ' '.join([f"--{k}={v}" for k, v in kwargs.items()])
+                log_command(f"{command_name} {log_args} {log_kwargs}".strip())
             except Exception as e:
                 error_message = f"An unexpected error occurred executing '{command_name}': {e}"
                 print(error_message)

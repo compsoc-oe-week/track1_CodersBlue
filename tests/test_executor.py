@@ -58,7 +58,7 @@ class TestExecutor(unittest.TestCase):
                 with patch('src.core.executor.preview'):
                     results = executor.run(plan)
 
-        mock_ls.assert_called_once_with(["."])
+        mock_ls.assert_called_once_with(['.'], {})
         self.assertEqual(results["results"][0]["status"], "success")
         self.assertEqual(results["results"][0]["output"], "ls success")
 
