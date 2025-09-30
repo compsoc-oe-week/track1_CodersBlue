@@ -102,6 +102,73 @@ def _parse_single_command(user_intent: str) -> Optional[Dict]:
         except (ValueError, IndexError):
             return None
 
+    elif ("make" in words and "directory" in words) or "mkdir" in words:
+        try:
+            path = ""
+            if "mkdir" in words:
+                path_index = words.index("mkdir") + 1
+                if path_index < len(words):
+                    path = " ".join(words[path_index:]).strip("'\"")
+            elif "make" in words and "directory" in words:
+                # Handle "make directory called 'name'" or "make directory name"
+                if "called" in words:
+                    path_index = words.index("called") + 1
+                    if path_index < len(words):
+                        path = " ".join(words[path_index:]).strip("'\"")
+                else:
+                    dir_index = words.index("directory")
+                    if dir_index + 1 < len(words):
+                        path = " ".join(words[dir_index + 1:]).strip("'\"")
+            
+            if path:
+                return {"cmd": "mkdir", "args": [path], "why": "To create a directory."}
+        except (ValueError, IndexError):
+            return None
+
+    elif "cd" in words or "go to" in user_intent or "change directory" in user_intent:
+        try:
+            path = ""
+            if "cd" in words:
+                path_index = words.index("cd") + 1
+                if path_index < len(words):
+                    path = " ".join(words[path_index:]).strip("'\"")
+            elif "go to" in user_intent:
+                to_index = words.index("to") + 1
+                if to_index < len(words):
+                    path = " ".join(words[to_index:]).strip("'\"")
+            elif "change directory" in user_intent:
+                dir_index = words.index("directory") + 1
+                if dir_index < len(words):
+                    path = " ".join(words[dir_index:]).strip("'\"")
+            
+            if path:
+                return {"cmd": "cd", "args": [path], "why": "To change the current directory."}
+        except (ValueError, IndexError):
+            return None
+
+    elif ("create" in words and "file" in words) or "touch" in words:
+        try:
+            path = ""
+            if "touch" in words:
+                path_index = words.index("touch") + 1
+                if path_index < len(words):
+                    path = " ".join(words[path_index:]).strip("'\"")
+            elif "create" in words and "file" in words:
+                # Handle "create file called 'name'" or "create file name"
+                if "called" in words:
+                    path_index = words.index("called") + 1
+                    if path_index < len(words):
+                        path = " ".join(words[path_index:]).strip("'\"")
+                else:
+                    file_index = words.index("file")
+                    if file_index + 1 < len(words):
+                        path = " ".join(words[file_index + 1:]).strip("'\"")
+            
+            if path:
+                return {"cmd": "touch", "args": [path], "why": "To create a file."}
+        except (ValueError, IndexError):
+            return None
+
     elif "list" in words or "ls" in words:
         path = "."
         cmd_index = -1
