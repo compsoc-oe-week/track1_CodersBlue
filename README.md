@@ -1,11 +1,13 @@
 # Samantha — An AI Terminal Assistant for openEuler
 > Hackathon: **OpenEuler Challenge Week** · Team size: 5 · Time: **1 day**
 
-Samantha is a **Her-inspired**, empathetic **terminal assistant** for openEuler that ---
+Samantha is a **Her-inspired**, empathetic **terminal assistant** for openEuler that turns natural-language requests into **safe, auditable shell actions**, with **advanced search**, **multi-step pipelines**, and **agentic behaviors** (self-correction, planning, and proactive suggestions).
 
-## 🎨 UX: "Her"---
+This README doubles as our **roadmap**, **runbook**, and **judge-facing guide**.
 
-## 🧵 Demo Script (5–7 minutes)
+---
+
+## � Judging Criteria → Design Goals
 1. **Tier 1**: "copy all PDFs from ~/Downloads to ~/docs" → preview → confirm → success.
 2. **Tier 2**: "find logs >100MB last 7 days, compress and move to ~/backup/logs" → step checkpoints.
 3. **Tier 3**: Search with a typo → Samantha suggests correction → retry works. Suggests cron job.
