@@ -1,109 +1,100 @@
 import unittest
-from unittest.mock import patch, mock_open, call
-import subprocess
+from unittest.mock import patch, MagicMock
 import os
-from datetime import datetime
+import shutil
 
-# It's good practice to make sure the test can find the modules it needs to test.
-# This assumes the test is run from the root directory of the project.
+# Make sure the test can find the modules it needs to test.
 import sys
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from src.core import executor
-from src.core import safety
 
 class TestExecutor(unittest.TestCase):
 
     def setUp(self):
         """Set up a clean environment for each test."""
-        # Define a temporary log file path to avoid cluttering the user's home directory
         self.test_log_file = "test_undo.log"
+        self.test_dir = "test_temp_dir"
         executor.UNDO_LOG_FILE = self.test_log_file
-        # Ensure the log file doesn't exist before a test
-        if os.path.exists(self.test_log_file):
-            os.remove(self.test_log_file)
+        os.makedirs(self.test_dir, exist_ok=True)
+        executor.SESSION_CWD = os.path.abspath(self.test_dir)
 
     def tearDown(self):
         """Clean up after each test."""
-        # Remove the temporary log file
         if os.path.exists(self.test_log_file):
             os.remove(self.test_log_file)
-        # Restore the original log file path if needed, though it's less critical in a test suite
-        executor.UNDO_LOG_FILE = os.path.expanduser("~/.samantha/undo.log")
+        if os.path.exists(self.test_dir):
+            shutil.rmtree(self.test_dir)
+        executor.SESSION_CWD = os.getcwd()
 
     @patch('sys.stdout')
-    def test_preview_commands(self, mock_stdout):
-        """Test that the command preview prints correctly."""
+    def test_preview(self, mock_stdout):
+        """Test that the plan preview prints correctly."""
         from io import StringIO
-
-        commands = ["echo 'hello'", "ls -l"]
-
-        # Redirect stdout to a string buffer
+        plan = {"assumptions": ["Doing a test."], "steps": [{"cmd": "ls", "args": ["-la"], "why": "To see files."}]}
         with patch('sys.stdout', new=StringIO()) as fake_out:
-            executor.preview_commands(commands)
+            executor.preview(plan)
             output = fake_out.getvalue()
-
-        # Check the captured output
-        self.assertIn("Planned commands:", output)
-        self.assertIn("1. echo 'hello'", output)
-        self.assertIn("2. ls -l", output)
+        self.assertIn("Here is the plan:", output)
+        self.assertIn("Doing a test.", output)
+        self.assertIn('1. ls "-la"', output)
 
     @patch('builtins.input', return_value='y')
-    def test_confirm_execution_yes(self, mock_input):
-        """Test that confirmation returns True for 'y'."""
-        self.assertTrue(executor.confirm_execution())
+    def test_confirm_yes(self, mock_input):
+        self.assertTrue(executor.confirm())
 
     @patch('builtins.input', return_value='n')
-    def test_confirm_execution_no(self, mock_input):
-        """Test that confirmation returns False for 'n'."""
-        self.assertFalse(executor.confirm_execution())
+    def test_confirm_no(self, mock_input):
+        self.assertFalse(executor.confirm())
 
-    @patch('src.core.executor.log_command')
-    @patch('subprocess.run')
-    @patch('src.core.safety.validate_command', return_value=True)
-    @patch('builtins.input', return_value='y')
-    def test_run_commands_successful_execution(self, mock_input, mock_validate, mock_run, mock_log):
-        """Test a full successful run of a single command."""
-        commands = ["ls -la"]
-        # Mock a successful subprocess result
-        mock_run.return_value = subprocess.CompletedProcess(args=commands[0], returncode=0, stdout="files", stderr="")
+    def test_run_successful_execution(self):
+        """Test a full successful run of a plan by mocking the command function."""
+        plan = {"steps": [{"cmd": "ls", "args": ["."], "why": "testing"}]}
 
-        executor.run_commands(commands)
+        # To test the dispatcher, we patch the command map itself
+        mock_ls = MagicMock(return_value="ls success")
+        with patch.dict(executor.COMMAND_MAP, {'ls': mock_ls}):
+            with patch('src.core.executor.confirm', return_value=True):
+                with patch('src.core.executor.preview'):
+                    results = executor.run(plan)
 
-        mock_validate.assert_called_once_with(commands[0])
-        mock_run.assert_called_once_with(commands[0], shell=True, check=True, text=True, capture_output=True)
-        mock_log.assert_called_once_with(commands[0])
+        mock_ls.assert_called_once_with(["."])
+        self.assertEqual(results["results"][0]["status"], "success")
+        self.assertEqual(results["results"][0]["output"], "ls success")
 
-    @patch('builtins.input', return_value='n')
-    @patch('subprocess.run')
-    def test_run_commands_user_cancels(self, mock_run, mock_input):
-        """Test that no command is run if the user cancels."""
-        commands = ["do-not-run"]
-        executor.run_commands(commands)
-        mock_run.assert_not_called()
+    @patch('src.core.executor.confirm', return_value=False)
+    @patch('src.core.executor.preview')
+    def test_run_user_cancels(self, mock_preview, mock_confirm):
+        plan = {"steps": [{"cmd": "ls", "args": [], "why": "test"}]}
+        with patch.dict(executor.COMMAND_MAP, {'ls': MagicMock()}) as mock_map:
+            executor.run(plan)
+            mock_map['ls'].assert_not_called()
+        mock_preview.assert_called_once_with(plan)
+        mock_confirm.assert_called_once()
 
-    @patch('src.core.safety.validate_command', return_value=False)
-    @patch('builtins.input', return_value='y')
-    @patch('subprocess.run')
-    def test_run_commands_skips_unsafe_command(self, mock_run, mock_input, mock_validate):
-        """Test that unsafe commands are skipped."""
-        commands = ["rm -rf /"]
-        executor.run_commands(commands)
-        mock_validate.assert_called_once_with(commands[0])
-        mock_run.assert_not_called()
+    def test_execute_mkdir_and_ls(self):
+        executor._execute_mkdir(["new_folder"])
+        self.assertTrue(os.path.isdir(os.path.join(self.test_dir, "new_folder")))
+        result = executor._execute_ls([])
+        self.assertIn("new_folder/", result)
+
+    def test_execute_touch_and_rm(self):
+        executor._execute_touch(["test_file.txt"])
+        self.assertTrue(os.path.exists(os.path.join(self.test_dir, "test_file.txt")))
+        with patch('builtins.input', return_value='y'):
+            executor._execute_rm(["test_file.txt"])
+        self.assertFalse(os.path.exists(os.path.join(self.test_dir, "test_file.txt")))
 
     def test_log_command(self):
         """Test that the undo log is written to correctly."""
-        command = "echo 'test log'"
-        # Ensure the log directory exists (the function should handle this)
-        executor.log_command(command)
-
+        command_str = "ls -la"
+        executor.log_command(command_str)
         self.assertTrue(os.path.exists(self.test_log_file))
         with open(self.test_log_file, "r") as f:
             content = f.read()
-            self.assertIn(command, content)
-            # Check for a rough timestamp format to ensure it's being logged
-            self.assertRegex(content, r'^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+')
+            self.assertIn(command_str, content)
+            # Correct regex for ISO 8601 format with microseconds
+            self.assertRegex(content, r'^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+.*')
 
 if __name__ == '__main__':
     unittest.main()

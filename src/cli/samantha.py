@@ -1,74 +1,63 @@
 import argparse
-import logging
-from src.core import utils
-from src.osint import openeuler
+import os
+from dotenv import load_dotenv
 
-# Placeholder imports for other modules
-# TODO: Replace with actual implementations
-def nl2cmd(prompt: str) -> str:
-    logging.info("nl2cmd: Converting natural language to command (placeholder).")
-    # Example: "what is the kernel version" -> "uname -r"
-    if "kernel version" in prompt:
-        return "get_kernel_version"
-    return "echo 'Command not understood'"
-
-def safety_check(command: str) -> bool:
-    logging.info(f"safety_check: Checking command for safety (placeholder): {command}")
-    # TODO: Implement actual safety checks
-    return True
-
-def execute_command(command: str) -> str:
-    logging.info(f"executor: Executing command (placeholder): {command}")
-    # This is a simple dispatcher for now
-    if command == "get_kernel_version":
-        return openeuler.get_kernel_version()
-    # TODO: Expand with more commands and a more robust execution mechanism
-    return openeuler._run_command(command.split())
-
-def memory_store(prompt: str, command: str, result: str):
-    logging.info("memory: Storing result (placeholder).")
-    # TODO: Implement memory storage
-    pass
-
-def summarize(prompt: str, result: str) -> str:
-    logging.info("summary: Summarizing result (placeholder).")
-    # TODO: Implement summarization logic
-    return f"The result of your request '{prompt}' is: {result}"
-
-def pipeline(prompt: str):
-    """The main processing pipeline for Samantha."""
-    utils.setup_logging()
-    logging.info(f"Received prompt: {prompt}")
-
-    # 1. nl2cmd: Convert natural language to command
-    command = nl2cmd(prompt)
-    logging.info(f"Translated to command: {command}")
-
-    # 2. safety: Check command for safety
-    if not safety_check(command):
-        logging.warning(f"Safety check failed for command: {command}")
-        return "Command aborted due to safety concerns."
-
-    # 3. executor: Execute the command
-    result = execute_command(command)
-    logging.info(f"Execution result: {result}")
-
-    # 4. memory: Store the result
-    memory_store(prompt, command, result)
-
-    # 5. summary: Summarize the result
-    summary = summarize(prompt, result)
-    print(summary)
-
+# It's good practice to structure imports, especially in a larger project.
+from src.core import nl2cmd, executor, memory, safety
+from src.ui import persona, colors
 
 def main():
-    """Main entry point for the Samantha CLI."""
-    parser = argparse.ArgumentParser(description="Samantha - An AI terminal assistant for openEuler.")
-    parser.add_argument("prompt", nargs='+', help="Natural language prompt for Samantha.")
+    """
+    Main entry point for the Samantha CLI.
+    Orchestrates the conversion of a natural language prompt into an executable plan.
+    """
+    # Load environment variables from .env file for local development
+    load_dotenv()
+
+    # Setup argument parser
+    parser = argparse.ArgumentParser(
+        description=f"{colors.CYAN}Samantha - An AI terminal assistant for openEuler.{colors.RESET}",
+        epilog="Example: python -m src.cli.samantha \"copy all pdfs from downloads to documents\""
+    )
+    parser.add_argument("prompt", nargs="+", help="The natural language command you want Samantha to execute.")
     args = parser.parse_args()
 
-    prompt = " ".join(args.prompt)
-    pipeline(prompt)
+    # Combine arguments into a single user prompt
+    user_intent = " ".join(args.prompt)
+    print(persona.greet(user_intent))
+
+    try:
+        # 1. Convert natural language to a structured plan
+        # This calls the OpenAI-compatible model to get a JSON plan.
+        plan = nl2cmd.nl_to_plan(user_intent)
+
+        # 2. (Future) Sanitize and validate the plan for safety
+        # plan = safety.sanitize_plan(plan)
+
+        # 3. Execute the plan
+        # The executor will preview, ask for confirmation, and then run the commands.
+        results = executor.run(plan)
+
+        # 4. (Future) Update memory with the context of this interaction
+        # memory.update(results=results, plan=plan)
+
+        # 5. Summarize the results for the user
+        executor.summarize(results)
+
+    except (nl2cmd.InvalidPlanError, ValueError) as e:
+        print(persona.inform_error(str(e)))
+    except openai.APIError as e:
+        print(persona.inform_error(f"I'm having trouble connecting to the AI model. Please check your connection and API settings. Details: {e}"))
+    except Exception as e:
+        # Catch-all for any other unexpected errors
+        print(persona.inform_error(f"An unexpected error occurred: {e}"))
 
 if __name__ == "__main__":
+    # To run this from the root directory:
+    # python -m src.cli.samantha "your command here"
+    #
+    # You need to have your environment variables set:
+    # export CODER_BASE_URL="http://your-model-endpoint/v1"
+    # export CODER_MODEL_NAME="your-model-name"
+    # export OPENAI_API_KEY="your-api-key-or-EMPTY"
     main()

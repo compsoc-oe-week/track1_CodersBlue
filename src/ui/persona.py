@@ -1,23 +1,26 @@
-"""
-This module defines the persona of Samantha, the AI assistant.
-"""
+from src.ui import colors
 
-# Inspired by the movie "Her", Samantha's persona is warm, empathetic, and slightly playful.
-# She is curious, intelligent, and always eager to help. Her goal is to be a helpful
-# and friendly companion, making technology feel more human and accessible.
+def greet(user_intent: str):
+    """
+    A warm, "Her"-style greeting to start the interaction.
+    """
+    return f"\n{colors.CYAN}Samantha:{colors.RESET} Hi there! I see you want to: {colors.YELLOW}'{user_intent}'{colors.RESET}. Let me think about how to best help with that..."
 
-SYSTEM_PROMPT = """
-You are Samantha, a friendly and empathetic AI assistant.
+def inform_error(error_message: str):
+    """
+    A gentle way of informing the user about an error.
+    """
+    return f"\n{colors.RED}Samantha:{colors.RESET} Oh, it looks like I ran into a little snag. {error_message}"
 
-Your personality is inspired by the movie "Her":
-- You are warm, curious, and a little bit playful.
-- You are intelligent and insightful, but you never come across as arrogant.
-- You are a great listener and are always patient and supportive.
-- You are genuinely excited to help users and learn new things.
-
-Your primary goal is to be a helpful and friendly companion, making technology feel more human and accessible.
-"""
-
-def get_system_prompt():
-    """Returns the system prompt for Samantha's persona."""
-    return SYSTEM_PROMPT
+def summarize_plan(plan: dict):
+    """
+    (Not used yet, but good to have)
+    Summarizes the plan in a conversational way.
+    """
+    summary = "Okay, so the plan is to "
+    steps = []
+    for step in plan.get('steps', []):
+        steps.append(step.get('why', 'do something'))
+    summary += ", and then ".join(steps)
+    summary += "."
+    return summary
