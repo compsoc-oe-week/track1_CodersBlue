@@ -1,37 +1,34 @@
-import subprocess
+import os
+import fnmatch
 import difflib
 
 def find_files(name_pattern, path='.'):
     """
-    Finds files by name using the find command.
+    Finds files by name using a cross-platform implementation.
     """
-    try:
-        result = subprocess.run(['find', path, '-name', name_pattern], capture_output=True, text=True, check=True)
-        output = result.stdout.strip()
-        if not output:
-            return []
-        return output.split('\n')
-    except (subprocess.CalledProcessError, FileNotFoundError):
-        return []
+    matches = []
+    for root, dirnames, filenames in os.walk(path):
+        for filename in fnmatch.filter(filenames, name_pattern):
+            matches.append(os.path.join(root, filename))
+    return matches
 
 def search_in_files(content_pattern, path='.'):
     """
-    Searches for content in files using grep.
+    Searches for content in files using a cross-platform implementation.
     """
-    try:
-        # Don't use check=True, as grep returns 1 when no matches are found.
-        result = subprocess.run(['grep', '-r', content_pattern, path], capture_output=True, text=True)
-        if result.returncode > 1:
-            # An actual error occurred.
-            return []
-
-        output = result.stdout.strip()
-        if not output:
-            return []
-        return output.split('\n')
-    except FileNotFoundError:
-        # grep is not installed
-        return []
+    matches = []
+    for root, dirnames, filenames in os.walk(path):
+        for filename in filenames:
+            filepath = os.path.join(root, filename)
+            try:
+                with open(filepath, 'r', encoding='utf-8', errors='ignore') as f:
+                    for i, line in enumerate(f, 1):
+                        if content_pattern in line:
+                            matches.append(f"{filepath}:{i}:{line.strip()}")
+            except (IOError, OSError):
+                # Ignore files that can't be opened
+                continue
+    return matches
 
 def find_best_match(query, candidates):
     """
