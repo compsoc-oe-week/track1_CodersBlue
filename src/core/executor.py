@@ -2,7 +2,7 @@ import os
 import shutil
 from datetime import datetime
 
-from src.core import safety
+from src.core import safety, search
 
 UNDO_LOG_FILE = os.path.expanduser("~/.samantha/undo.log")
 # Keep track of the current working directory for the session, start with process CWD
@@ -159,6 +159,38 @@ def _execute_rm(args):
     except OSError as e:
         return f"Error removing '{abs_path}': {e}"
 
+def _execute_find_files(args):
+    """Finds files by name pattern."""
+    if len(args) < 1:
+        return "Error: 'find_files' requires a name pattern."
+
+    name_pattern = args[0]
+    path = _resolve_path(args[1]) if len(args) > 1 else SESSION_CWD
+
+    try:
+        matches = search.find_files(name_pattern, path)
+        if not matches:
+            return f"No files found matching '{name_pattern}' in '{path}'."
+        return f"Found files:\n" + "\n".join(matches)
+    except Exception as e:
+        return f"Error finding files: {e}"
+
+def _execute_search_in_files(args):
+    """Searches for content within files."""
+    if len(args) < 1:
+        return "Error: 'search_in_files' requires a content pattern."
+
+    content_pattern = args[0]
+    path = _resolve_path(args[1]) if len(args) > 1 else SESSION_CWD
+
+    try:
+        matches = search.search_in_files(content_pattern, path)
+        if not matches:
+            return f"No content matching '{content_pattern}' found in files in '{path}'."
+        return f"Found content:\n" + "\n".join(matches)
+    except Exception as e:
+        return f"Error searching in files: {e}"
+
 COMMAND_MAP = {
     "ls": _execute_ls,
     "cd": _execute_cd,
@@ -168,6 +200,8 @@ COMMAND_MAP = {
     "cp": _execute_cp,
     "mv": _execute_mv,
     "rm": _execute_rm,
+    "find_files": _execute_find_files,
+    "search_in_files": _execute_search_in_files,
 }
 
 def preview(plan: dict):

@@ -24,3 +24,9 @@ def summarize_plan(plan: dict):
     summary += ", and then ".join(steps)
     summary += "."
     return summary
+
+def inform(message: str):
+    """
+    A gentle way of informing the user about something.
+    """
+    return f"\n{colors.CYAN}Samantha:{colors.RESET} {message}"
