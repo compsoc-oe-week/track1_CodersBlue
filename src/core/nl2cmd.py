@@ -6,9 +6,11 @@ from dotenv import load_dotenv
 
 MAX_RETRIES = 3
 
+
 class InvalidPlanError(Exception):
     """Raised when the plan from the model is invalid."""
     pass
+
 
 # A more detailed system prompt that defines the available tools and provides few-shot examples.
 SYSTEM_PROMPT = """
@@ -101,17 +103,25 @@ User request: "Show me what's in the new hackathon folder"
 }
 """
 
+
 def _validate_plan_structure(plan: Dict) -> bool:
     """Validates the structure of the plan."""
-    if not isinstance(plan, dict): return False
-    if "steps" not in plan or "assumptions" not in plan: return False
-    if not isinstance(plan["steps"], list) or not isinstance(plan["assumptions"], list): return False
+    if not isinstance(plan, dict):
+        return False
+    if "steps" not in plan or "assumptions" not in plan:
+        return False
+    if not isinstance(plan["steps"], list) or not isinstance(plan["assumptions"], list):
+        return False
 
     for step in plan["steps"]:
-        if not isinstance(step, dict): return False
-        if "cmd" not in step or "args" not in step or "why" not in step: return False
-        if not isinstance(step["cmd"], str) or not isinstance(step["args"], list) or not isinstance(step["why"], str): return False
+        if not isinstance(step, dict):
+            return False
+        if "cmd" not in step or "args" not in step or "why" not in step:
+            return False
+        if not isinstance(step["cmd"], str) or not isinstance(step["args"], list) or not isinstance(step["why"], str):
+            return False
     return True
+
 
 def nl_to_plan(text: str, history: List[Dict[str, str]] = None) -> Dict:
     """
@@ -123,15 +133,35 @@ def nl_to_plan(text: str, history: List[Dict[str, str]] = None) -> Dict:
     model_name = os.environ.get("CODER_MODEL_NAME")
     api_key = os.environ.get("OPENAI_API_KEY")
 
-    if not base_url: raise ValueError("CODER_BASE_URL environment variable not set.")
-    if not model_name: raise ValueError("CODER_MODEL_NAME environment variable not set.")
-    if not api_key: raise ValueError("OPENAI_API_KEY environment variable not set (can be 'EMPTY').")
+    if not base_url:
+        raise ValueError("CODER_BASE_URL environment variable not set.")
+    if not model_name:
+        raise ValueError("CODER_MODEL_NAME environment variable not set.")
+    if not api_key:
+        raise ValueError(
+            "OPENAI_API_KEY environment variable not set (can be 'EMPTY').")
 
     client = openai.OpenAI(base_url=base_url, api_key=api_key)
 
     # Format the history and the current request
-    history_text = "\n".join([f"{item['role'].capitalize()}: {item['content']}" for item in (history or [])])
+    history_text = "\n".join(
+        [f"{item['role'].capitalize()}: {item['content']}" for item in (history or [])])
     full_prompt = f"--- Conversation History ---\n{history_text}\n\n--- Current Request ---\n{text}"
+
+    import re
+
+    def extract_typo_correction(assumptions):
+        # Looks for patterns like: "likely a typo for 'budget'" or "probably meant 'budget'"
+        for a in assumptions:
+            # Common pattern: "likely a typo for 'budget'"
+            m = re.search(r"likely a typo for '([^']+)'", a, re.IGNORECASE)
+            if m:
+                return m.group(1)
+            # Alternative: "probably meant 'budget'"
+            m = re.search(r"probably meant '([^']+)'", a, re.IGNORECASE)
+            if m:
+                return m.group(1)
+        return None
 
     for _ in range(MAX_RETRIES):
         try:
@@ -142,7 +172,7 @@ def nl_to_plan(text: str, history: List[Dict[str, str]] = None) -> Dict:
                     {"role": "user", "content": full_prompt}
                 ],
                 response_format={"type": "json_object"},
-                temperature=0.0, # Make the output deterministic
+                temperature=0.0,  # Make the output deterministic
             )
             content = response.choices[0].message.content
             if content is None:
@@ -150,18 +180,44 @@ def nl_to_plan(text: str, history: List[Dict[str, str]] = None) -> Dict:
 
             plan = json.loads(content)
 
+            # --- Correction logic: if typo correction is mentioned in assumptions, update steps ---
             if _validate_plan_structure(plan):
+                correction = extract_typo_correction(plan["assumptions"])
+                if correction:
+                    # Replace the typo in the args of relevant steps
+                    for step in plan["steps"]:
+                        # Only update if the step is a search or similar
+                        if step["cmd"] in ["search_in_files", "find_files"] and step["args"]:
+                            # Replace the first arg if it matches the typo (i.e., not the correction)
+                            typo = text
+                            # Try to extract the typo from the step arg (if it's not the correction)
+                            # For now, if the arg is not the correction, replace it
+                            if correction not in step["args"][0]:
+                                step["args"][0] = correction
                 return plan
             else:
                 # Invalid structure, retry
                 continue
 
-        except (json.JSONDecodeError, openai.APIError) as e:
-            # Invalid JSON or API error, retry
-            print(f"Retrying due to error: {e}")
+        except Exception as e:
+            import traceback
+            print("--- Exception occurred while calling the model API ---")
+            print(f"Type: {type(e)}")
+            print(f"Error: {e}")
+            traceback.print_exc()
+            # Try to print response content if available
+            if hasattr(e, 'response') and e.response is not None:
+                try:
+                    print("Response status:", e.response.status_code)
+                    print("Response content:", e.response.text)
+                except Exception:
+                    pass
+            print("Retrying due to error above.")
             continue
 
-    raise InvalidPlanError(f"Failed to get a valid plan from the model after {MAX_RETRIES} retries.")
+    raise InvalidPlanError(
+        f"Failed to get a valid plan from the model after {MAX_RETRIES} retries.")
+
 
 if __name__ == '__main__':
     # Example usage:
