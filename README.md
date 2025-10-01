@@ -53,17 +53,17 @@ python -m src.cli.samantha --mock "go to demo_data"
 
 # File creation and manipulation  
 python -m src.cli.samantha --mock "create a folder called test_results"
-python -m src.cli.samantha --mock "copy all files from demo_data to backup"
+python -m src.cli.samantha --mock "copy presentation-slides.pdf from demo_data to backup"
 ```
 
 ### **Tier 2: Advanced Intelligence**
 ```bash
 # Advanced search with filters
-python -m src.cli.samantha --mock "find all pdf files in demo_data"
+python -m src.cli.samantha --mock "find pdf files in demo_data"
 python -m src.cli.samantha --mock "find files larger than 1mb in demo_data"
 
-# Multi-step operations
-python -m src.cli.samantha --mock "find pdf files in demo_data then copy them to archive"
+# Multi-step operations (DEMONSTRATES ADVANCED INTELLIGENCE)
+python -m src.cli.samantha --mock "find pdf files in demo_data then move them to backup"
 ```
 
 ### **Tier 3: AI-Powered Features**
