@@ -6,9 +6,11 @@ from dotenv import load_dotenv
 
 MAX_RETRIES = 3
 
+
 class InvalidPlanError(Exception):
     """Raised when the plan from the model is invalid."""
     pass
+
 
 # A more detailed system prompt that defines the available tools and provides few-shot examples.
 SYSTEM_PROMPT = """
@@ -101,17 +103,25 @@ User request: "Show me what's in the new hackathon folder"
 }
 """
 
+
 def _validate_plan_structure(plan: Dict) -> bool:
     """Validates the structure of the plan."""
-    if not isinstance(plan, dict): return False
-    if "steps" not in plan or "assumptions" not in plan: return False
-    if not isinstance(plan["steps"], list) or not isinstance(plan["assumptions"], list): return False
+    if not isinstance(plan, dict):
+        return False
+    if "steps" not in plan or "assumptions" not in plan:
+        return False
+    if not isinstance(plan["steps"], list) or not isinstance(plan["assumptions"], list):
+        return False
 
     for step in plan["steps"]:
-        if not isinstance(step, dict): return False
-        if "cmd" not in step or "args" not in step or "why" not in step: return False
-        if not isinstance(step["cmd"], str) or not isinstance(step["args"], list) or not isinstance(step["why"], str): return False
+        if not isinstance(step, dict):
+            return False
+        if "cmd" not in step or "args" not in step or "why" not in step:
+            return False
+        if not isinstance(step["cmd"], str) or not isinstance(step["args"], list) or not isinstance(step["why"], str):
+            return False
     return True
+
 
 def nl_to_plan(text: str, history: List[Dict[str, str]] = None) -> Dict:
     """
@@ -123,14 +133,19 @@ def nl_to_plan(text: str, history: List[Dict[str, str]] = None) -> Dict:
     model_name = os.environ.get("CODER_MODEL_NAME")
     api_key = os.environ.get("OPENAI_API_KEY")
 
-    if not base_url: raise ValueError("CODER_BASE_URL environment variable not set.")
-    if not model_name: raise ValueError("CODER_MODEL_NAME environment variable not set.")
-    if not api_key: raise ValueError("OPENAI_API_KEY environment variable not set (can be 'EMPTY').")
+    if not base_url:
+        raise ValueError("CODER_BASE_URL environment variable not set.")
+    if not model_name:
+        raise ValueError("CODER_MODEL_NAME environment variable not set.")
+    if not api_key:
+        raise ValueError(
+            "OPENAI_API_KEY environment variable not set (can be 'EMPTY').")
 
     client = openai.OpenAI(base_url=base_url, api_key=api_key)
 
     # Format the history and the current request
-    history_text = "\n".join([f"{item['role'].capitalize()}: {item['content']}" for item in (history or [])])
+    history_text = "\n".join(
+        [f"{item['role'].capitalize()}: {item['content']}" for item in (history or [])])
     full_prompt = f"--- Conversation History ---\n{history_text}\n\n--- Current Request ---\n{text}"
 
     for _ in range(MAX_RETRIES):
@@ -142,7 +157,7 @@ def nl_to_plan(text: str, history: List[Dict[str, str]] = None) -> Dict:
                     {"role": "user", "content": full_prompt}
                 ],
                 response_format={"type": "json_object"},
-                temperature=0.0, # Make the output deterministic
+                temperature=0.0,  # Make the output deterministic
             )
             content = response.choices[0].message.content
             if content is None:
@@ -156,12 +171,25 @@ def nl_to_plan(text: str, history: List[Dict[str, str]] = None) -> Dict:
                 # Invalid structure, retry
                 continue
 
-        except (json.JSONDecodeError, openai.APIError) as e:
-            # Invalid JSON or API error, retry
-            print(f"Retrying due to error: {e}")
+        except Exception as e:
+            import traceback
+            print("--- Exception occurred while calling the model API ---")
+            print(f"Type: {type(e)}")
+            print(f"Error: {e}")
+            traceback.print_exc()
+            # Try to print response content if available
+            if hasattr(e, 'response') and e.response is not None:
+                try:
+                    print("Response status:", e.response.status_code)
+                    print("Response content:", e.response.text)
+                except Exception:
+                    pass
+            print("Retrying due to error above.")
             continue
 
-    raise InvalidPlanError(f"Failed to get a valid plan from the model after {MAX_RETRIES} retries.")
+    raise InvalidPlanError(
+        f"Failed to get a valid plan from the model after {MAX_RETRIES} retries.")
+
 
 if __name__ == '__main__':
     # Example usage:
