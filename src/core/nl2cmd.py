@@ -1,7 +1,7 @@
 import os
 import json
 import openai
-from typing import Dict
+from typing import Dict, List
 from dotenv import load_dotenv
 
 MAX_RETRIES = 3
@@ -15,6 +15,8 @@ SYSTEM_PROMPT = """
 You are Samantha, a helpful AI assistant that converts natural language requests into a structured JSON plan for a Python execution engine.
 You are empathetic, knowledgeable, and prioritize safety. Your goal is to create a clear, step-by-step plan that the user can approve.
 
+You will be given the recent conversation history followed by the user's latest request. Use the history to understand context, resolve ambiguities, and handle follow-up questions.
+
 The execution engine has the following Python functions available:
 - `ls(path: str)`: Lists files and directories.
 - `cd(path: str)`: Changes the current directory.
@@ -26,6 +28,7 @@ The execution engine has the following Python functions available:
 - `rm(path: str)`: Removes a file or directory (this is destructive and will require user confirmation).
 - `find_files(name_pattern: str, path: str = '.')`: Finds files matching a pattern (e.g., '*.pdf').
 - `search_in_files(content_pattern: str, path: str = '.')`: Searches for text content inside files.
+- `execute_bash(command: str)`: Executes a shell command. Use this for tasks not covered by other functions, like installing packages or running scripts.
 
 Based on the user's request, provide a plan in the following JSON format.
 Respond with ONLY the JSON object, nothing else.
@@ -110,9 +113,10 @@ def _validate_plan_structure(plan: Dict) -> bool:
         if not isinstance(step["cmd"], str) or not isinstance(step["args"], list) or not isinstance(step["why"], str): return False
     return True
 
-def nl_to_plan(text: str) -> Dict:
+def nl_to_plan(text: str, history: List[Dict[str, str]] = None) -> Dict:
     """
-    Converts a natural language string to a structured plan using an AI model.
+    Converts a natural language string to a structured plan using an AI model,
+    considering the conversation history for context.
     """
     load_dotenv()
     base_url = os.environ.get("CODER_BASE_URL")
@@ -125,13 +129,17 @@ def nl_to_plan(text: str) -> Dict:
 
     client = openai.OpenAI(base_url=base_url, api_key=api_key)
 
+    # Format the history and the current request
+    history_text = "\n".join([f"{item['role'].capitalize()}: {item['content']}" for item in (history or [])])
+    full_prompt = f"--- Conversation History ---\n{history_text}\n\n--- Current Request ---\n{text}"
+
     for _ in range(MAX_RETRIES):
         try:
             response = client.chat.completions.create(
                 model=model_name,
                 messages=[
                     {"role": "system", "content": SYSTEM_PROMPT},
-                    {"role": "user", "content": f"Here is my request:\n\n{text}"}
+                    {"role": "user", "content": full_prompt}
                 ],
                 response_format={"type": "json_object"},
                 temperature=0.0, # Make the output deterministic

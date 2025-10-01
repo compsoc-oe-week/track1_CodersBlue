@@ -57,19 +57,35 @@ def find_files(name_pattern, path='.', size=None, modified=None, file_type=None)
 
 def search_in_files(content_pattern, path='.'):
     """
-    Searches for content in files using a cross-platform implementation.
+    Searches for files containing all space-separated keywords in the content_pattern (case-insensitive).
+    Returns a list of matching file paths and the first line that contains one of the keywords.
     """
+    search_terms = content_pattern.lower().split()
+    if not search_terms:
+        return []
+
     matches = []
     for root, dirnames, filenames in os.walk(path):
+        # Exclude common binary file extensions to speed up search
+        filenames = [f for f in filenames if not f.lower().endswith(('.png', '.jpg', '.jpeg', '.gif', '.bmp', '.ico', '.pdf', '.zip', '.gz', '.tar', '.rar', '.exe', '.dll', '.so', '.pyc'))]
+
         for filename in filenames:
             filepath = os.path.join(root, filename)
             try:
+                # Read the whole file content to check for all keywords.
                 with open(filepath, 'r', encoding='utf-8', errors='ignore') as f:
-                    for i, line in enumerate(f, 1):
-                        if content_pattern in line:
-                            matches.append(f"{filepath}:{i}:{line.strip()}")
+                    content = f.read().lower()
+
+                # If all keywords are present in the file content
+                if all(term in content for term in search_terms):
+                    # Re-open the file to find the first line with any keyword for context
+                    with open(filepath, 'r', encoding='utf-8', errors='ignore') as f:
+                        for i, line in enumerate(f, 1):
+                            if any(term in line.lower() for term in search_terms):
+                                matches.append(f"{filepath}:{i}:{line.strip()}")
+                                break  # Move to the next file after finding the first relevant line
             except (IOError, OSError):
-                # Ignore files that can't be opened
+                # Ignore files that can't be opened or read
                 continue
     return matches
 
