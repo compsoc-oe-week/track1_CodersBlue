@@ -30,3 +30,7 @@ def inform(message: str):
     A gentle way of informing the user about something.
     """
     return f"\n{colors.CYAN}Samantha:{colors.RESET} {message}"
+
+def inform_suggestion(title: str, message: str):
+    """Presents a suggestion to the user in a friendly way."""
+    return f"\n{colors.YELLOW}💡 {title}{colors.RESET}\n{colors.CYAN}Samantha:{colors.RESET} {message}"
