@@ -23,7 +23,7 @@
 ### **Installation**
 ```bash
 # Clone the repository
-git clone https://github.com/panther-0707/track1_CodersBlue.git
+git clone https://github.com/compsoc-oe-week/track1_CodersBlue.git
 cd track1_CodersBlue
 
 # Install dependencies
