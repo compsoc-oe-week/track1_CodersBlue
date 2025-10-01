@@ -243,6 +243,25 @@ def _execute_search_in_files(args, kwargs=None):
     except Exception as e:
         return f"Error searching in files: {e}"
 
+def _execute_bash(args, kwargs=None):
+    """Executes a bash command."""
+    import subprocess
+    if not args:
+        return "Error: 'execute_bash' requires a command to run."
+    command = " ".join(args)
+    try:
+        # Using shell=True for simplicity, but be aware of security implications.
+        result = subprocess.run(command, capture_output=True, text=True, check=False, shell=True)
+        output = result.stdout.strip()
+        error = result.stderr.strip()
+        if result.returncode != 0:
+            # Combine stdout and stderr for better error context
+            full_output = (output + "\n" + error).strip()
+            return f"Error executing command '{command}':\n{full_output}"
+        return output
+    except Exception as e:
+        return f"Failed to execute bash command '{command}': {e}"
+
 COMMAND_MAP = {
     "ls": _execute_ls,
     "cd": _execute_cd,
@@ -254,7 +273,64 @@ COMMAND_MAP = {
     "rm": _execute_rm,
     "find_files": _execute_find_files,
     "search_in_files": _execute_search_in_files,
+    "execute_bash": _execute_bash,
 }
+
+def execute_with_recovery(command_name, args, kwargs):
+    """
+    Executes a command with error handling and recovery suggestions.
+    """
+    try:
+        if command_name not in COMMAND_MAP:
+            return {"status": "error", "output": f"Unknown command: '{command_name}'."}
+
+        # Initial execution attempt
+        output = COMMAND_MAP[command_name](args, kwargs)
+
+        # Basic error detection based on string output
+        if isinstance(output, str) and output.strip().lower().startswith("error:"):
+            error_message = output
+            # --- Attempt Self-Correction ---
+            # 1. File/Directory Not Found
+            if "not found" in error_message.lower():
+                # Try to find a path-like argument to correct
+                path_to_check = ""
+                if args:
+                    # A simple heuristic: assume the first argument is the path.
+                    # This could be improved by analyzing the command's expected signature.
+                    path_to_check = args[0]
+
+                if path_to_check:
+                    suggestion = _suggest_best_match(_resolve_path(path_to_check))
+                    if suggestion:
+                        # In a more advanced agent, it might auto-apply this or ask the user.
+                        # For now, we'll just add it to the error output.
+                        error_message += f" Suggestion: {suggestion}"
+
+            # 2. Permission Error (example placeholder)
+            elif "permission denied" in error_message.lower():
+                error_message += " Suggestion: Try running with 'sudo' or check file permissions."
+
+            return {"status": "error", "output": error_message}
+
+        return {"status": "success", "output": output}
+
+    except FileNotFoundError as e:
+        # This handles errors raised internally by commands, not just from output strings
+        suggestion = _suggest_best_match(e.filename)
+        error_message = f"Error: The path '{e.filename}' does not exist."
+        if suggestion:
+            error_message += f" Did you mean '{suggestion[0]}'?"
+        return {"status": "error", "output": error_message}
+
+    except PermissionError as e:
+        return {"status": "error", "output": f"Error: Permission denied for '{e.filename}'. You may need to use 'sudo' or change permissions."}
+
+    except Exception as e:
+        # Catch-all for other unexpected errors during execution
+        error_message = f"An unexpected critical error occurred executing '{command_name}': {e}"
+        return {"status": "error", "output": error_message}
+
 
 def preview(plan: dict):
     """Prints a human-readable preview of the execution plan."""
@@ -318,32 +394,24 @@ def run(plan: dict):
             results.append({"status": "error", "output": "Step is missing a command."})
             continue
 
-        if command_name in COMMAND_MAP:
-            try:
-                output = COMMAND_MAP[command_name](args, kwargs)
-                print(output)
-                results.append({"status": "success", "output": output})
+        execution_result = execute_with_recovery(command_name, args, kwargs)
+        print(execution_result["output"])
+        results.append(execution_result)
 
-                if command_name == "find_files" and output.startswith("Found files:\n"):
-                    # Handle case where no files are found
-                    file_list = output.strip().split('\n')[1:]
-                    last_step_output_files = [f for f in file_list if f] # Filter out empty strings
-                else:
-                    last_step_output_files = []
+        if execution_result["status"] == "success":
+            output = execution_result["output"]
+            if command_name == "find_files" and isinstance(output, str) and output.startswith("Found files:\n"):
+                file_list = output.strip().split('\n')[1:]
+                last_step_output_files = [f for f in file_list if f]
+            else:
+                last_step_output_files = []
 
-                log_args = ' '.join(map(str, args))
-                log_kwargs = ' '.join([f"--{k}={v}" for k, v in kwargs.items()])
-                log_command(f"{command_name} {log_args} {log_kwargs}".strip())
-            except Exception as e:
-                error_message = f"An unexpected error occurred executing '{command_name}': {e}"
-                print(error_message)
-                results.append({"status": "error", "output": error_message})
-                print("Stopping execution due to error.")
-                break
+            log_args = ' '.join(map(str, args))
+            log_kwargs = ' '.join([f"--{k}={v}" for k, v in kwargs.items()])
+            log_command(f"{command_name} {log_args} {log_kwargs}".strip())
         else:
-            unknown_cmd_msg = f"Unknown command: '{command_name}'. Aborting."
-            print(unknown_cmd_msg)
-            results.append({"status": "error", "output": unknown_cmd_msg})
+            # Stop execution on any error
+            print("Stopping execution due to error.")
             break
 
     return {"summary": "Plan execution finished.", "results": results}

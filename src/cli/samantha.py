@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 import openai
 
 # It's good practice to structure imports, especially in a larger project.
-from src.core import nl2cmd, executor, memory, safety
+from src.core import nl2cmd, executor, memory, safety, suggestions
 from src.core.mock_planner import create_mock_plan
 from src.ui import persona, colors
 
@@ -15,6 +15,23 @@ def has_api_config():
         os.environ.get("CODER_MODEL_NAME"),
         os.environ.get("OPENAI_API_KEY")
     ])
+
+def handle_suggestion(suggestion):
+    """Handles displaying and potentially acting on a suggestion."""
+    if not suggestion:
+        return
+
+    print(persona.inform_suggestion(suggestion['title'], suggestion['message']))
+    choice = input("Would you like me to perform this action? (y/n): ").lower().strip()
+
+    if choice == 'y':
+        print(persona.inform("Great! I'll take care of that for you."))
+        # The suggestion contains a pre-made plan to execute
+        plan = suggestion['actionable_plan']
+        results = executor.run(plan)
+        executor.summarize(results)
+    else:
+        print(persona.inform("No problem. I won't do anything."))
 
 def main():
     """
@@ -40,6 +57,13 @@ def main():
     # Initialize memory
     memory_instance = memory.Memory()
 
+    # --- Proactive Suggestion Check ---
+    # Before processing the user's request, check for any proactive suggestions.
+    desktop_suggestion = suggestions.suggest_desktop_cleanup()
+    if desktop_suggestion:
+        handle_suggestion(desktop_suggestion)
+        # We'll continue to process the user's original request after handling the suggestion.
+
     try:
         plan = None
         # 1. Convert natural language to a structured plan
@@ -50,11 +74,12 @@ def main():
                 print(persona.inform("Running in mock mode."))
             plan = create_mock_plan(user_intent)
         else:
-            # This calls the OpenAI-compatible model to get a JSON plan.
-            plan = nl2cmd.nl_to_plan(user_intent)
+            # Pass conversation history to the planner for context
+            history = memory_instance.get_history()
+            plan = nl2cmd.nl_to_plan(user_intent, history=history)
 
         if not plan or not plan.get("steps"):
-            print(persona.inform_error("I couldn't create a plan for that request."))
+            print(persona.inform_error("I couldn't create a plan for that request. Could you be more specific?"))
             return
 
         # 2. (Future) Sanitize and validate the plan for safety
@@ -65,7 +90,7 @@ def main():
         results = executor.run(plan)
 
         # 4. Update memory with the context of this interaction
-        memory_instance.update(plan=plan, results=results)
+        memory_instance.update(plan=plan, results=results, user_request=user_intent)
 
         # 5. Summarize the results for the user
         executor.summarize(results)
