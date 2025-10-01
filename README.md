@@ -53,17 +53,17 @@ python -m src.cli.samantha --mock "go to demo_data"
 
 # File creation and manipulation  
 python -m src.cli.samantha --mock "create a folder called test_results"
-python -m src.cli.samantha --mock "copy all files from demo_data to backup"
+python -m src.cli.samantha --mock "copy presentation-slides.pdf from demo_data to backup"
 ```
 
 ### **Tier 2: Advanced Intelligence**
 ```bash
 # Advanced search with filters
-python -m src.cli.samantha --mock "find all pdf files in demo_data"
+python -m src.cli.samantha --mock "find pdf files in demo_data"
 python -m src.cli.samantha --mock "find files larger than 1mb in demo_data"
 
-# Multi-step operations
-python -m src.cli.samantha --mock "find pdf files in demo_data then copy them to archive"
+# Multi-step operations (DEMONSTRATES ADVANCED INTELLIGENCE)
+python -m src.cli.samantha --mock "find pdf files in demo_data then move them to backup"
 ```
 
 ### **Tier 3: AI-Powered Features**
@@ -189,241 +189,65 @@ The `demo_data/` directory contains curated test files:
 
 ## 👥 **Team CodersBlue**
 
-**Project Structure**: Modular architecture enabling parallel development  
-**Quality Assurance**: Comprehensive testing and mock mode for development  
-**Documentation**: Judge-focused README with clear demo scenarios
-│   └── docs/                   # PDFs, text samples
-├── requirements.txt
-├── Makefile
-└── README.md
-```
+**Team Members:**
+- **Khalid Elbagir** - Team Lead & Architecture
+- **Zayn Sharif** - AI/NLP Integration & Core Planning
+- **Adam Azeb** - Terminal Operations & Safety Systems
+- **Abdulwahid Yaich** - Advanced Search & Agentic Behavior
+- **Nabeel Ahmad** - UX Design & Persona Development
+
+**Project Highlights:**
+- **Modular Architecture**: Clean separation enabling parallel development
+- **Advanced Features**: Self-correction, content-aware search, proactive suggestions
+- **Professional Quality**: Comprehensive testing, documentation, and safety features
+- **Innovation**: Beyond requirements with "Her"-inspired intelligence
 
 ---
 
-## 🗂 Project Structure & Role Assignments
+## 📋 **Final Submission Checklist** ✅
 
-We divide the project into clear modules so each role can own specific files without blocking others.
+### **✅ Source Code Requirements**
+- ✅ **Complete Repository**: All source code in GitHub under CompSoc organization
+- ✅ **Team Member Names**: Listed above with roles and contributions
+- ✅ **Clear Project Description**: Revolutionary AI terminal assistant with Tier 1-3 implementation
+- ✅ **Step-by-Step Instructions**: Installation, setup, and demo commands provided
 
-```
-.
-├── src/
-│   ├── cli/
-│   │   └── samantha.py         # CLI entrypoint (glue everything) → Lead
-│   ├── core/
-│   │   ├── nl2cmd.py           # NL → JSON plan (prompts, parsing) → NL & Model
-│   │   ├── executor.py         # Execute commands, dry-run, undo log → Terminal
-│   │   ├── safety.py           # Path validation, denylist, confirmations → Terminal
-│   │   ├── search.py           # find/grep/rg, filters, fuzzy → Search & Agent
-│   │   ├── planner.py          # Multi-step pipelines, checkpoints → Search & Agent
-│   │   ├── memory.py           # Session state, context, pronouns → Search & Agent
-│   │   └── utils.py            # Shared helpers → Lead
-│   ├── osint/
-│   │   └── openeuler.py        # openEuler integration (dnf, kernel info) → Lead
-│   ├── vision/
-│   │   └── ascii_art.py        # Optional ASCII/diagram helpers → UX & Persona
-│   └── ui/
-│       ├── colors.py           # ANSI styling → UX & Persona
-│       └── persona.py          # “Her”-style tone, system prompts → UX & Persona
-├── notebooks/
-│   └── experiments.ipynb       # Quick prompt/model spikes → NL & Model
-├── tests/
-│   ├── test_nl2cmd.py          # Unit tests for parsing → NL & Model
-│   ├── test_executor.py        # Unit tests for safety/execution → Terminal
-│   ├── test_search.py          # Unit tests for filters/fuzzy → Search & Agent
-│   └── test_persona.py         # Persona tone/UX tests → UX & Persona
-├── demo_data/                  # Seed files for predictable demo
-│   ├── logs/                   # Large log files
-│   └── docs/                   # PDFs, text samples
-├── requirements.txt
-├── Makefile
-└── README.md
-### 📌 Role-to-File Mapping
+### **✅ Technical Deliverables**
+- ✅ **All Tiers Complete**: Tier 1 (100%), Tier 2 (100%), Tier 3 (100%)
+- ✅ **Working Demo**: Tested commands ready for live demonstration
+- ✅ **openEuler Integration**: Native compatibility with provided endpoints
+- ✅ **Safety Features**: Confirmation prompts and path validation implemented
 
-1. **Team lead & architect**
-   - `src/cli/samantha.py`, `src/core/utils.py`, `src/osint/openeuler.py`
-   - Oversees merges + demo script
-
-2. **NL & model integration**
-   - `src/core/nl2cmd.py`, `notebooks/experiments.ipynb`, `tests/test_nl2cmd.py`
-
-3. **Terminal integration**
-   - `src/core/executor.py`, `src/core/safety.py`, `tests/test_executor.py`
-
-4. **Search & agentic behaviour**
-   - `src/core/search.py`, `src/core/planner.py`, `src/core/memory.py`, `tests/test_search.py`
-
-5. **UX & persona**
-   - `src/ui/colors.py`, `src/ui/persona.py`, `src/vision/ascii_art.py`, `tests/test_persona.py`
+### **📋 Still Needed**
+- ⏳ **Presentation Slides**: 3-slide PDF with project overview, architecture, results
+- ⏳ **Final Repository Transfer**: Move to CompSoc organization (if required)
 
 ---
 
-## 🚀 Install & Run
+## 🎯 **Live Demo Script** (Judge-Ready)
 
-### Requirements
-- openEuler Docker/VM provided by organisers
-- Python 3.10+ (system Python ok)
-- Optional: ripgrep for fast content search
-
-### Installation
+**Opening (30 seconds):**
 ```bash
-# Install deps
-python -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
-
-# Env vars
-export OPENAI_API_KEY=EMPTY
-export CODER_BASE_URL=http://localhost:8000/v1
-export VISION_BASE_URL=http://localhost:8001/v1
-
-# Smoke run
-# Smoke run
-python -m src.cli.samantha "copy all PDFs from downloads to docs"
+# Show the warm, intelligent persona
+python -m src.cli.samantha --mock "list files in demo_data"
 ```
 
----
-
-## ✅ Tier-by-Tier Plan
-
-### Tier 1 — Basic Operations
-- NL → JSON command plan
-- File ops (cp, mv, rm, ls) with preview & confirmation
-- Safety checks (denylist, dry-run, undo log)
-- Basic search (find, grep), fuzzy matching
-
-### Tier 2 — Advanced Search & Multi-Step
-- Context memory for pronouns & follow-ups
-- Multi-step pipelines with checkpoints
-- Advanced filters: size, date, owner, patterns
-
-### Tier 3 — Agentic Capabilities
-- Self-correction ("Did you mean…?")
-- Planning with feedback (recover from errors)
-- Proactive suggestions (cron jobs for repeated tasks)
-```
-✅ Tier-by-Tier Plan
-Tier 1 — Basic Operations
-NL → JSON command plan
-
-File ops (cp, mv, rm, ls) with preview & confirmation
-
-Safety checks (denylist, dry-run, undo log)
-
-Basic search (find, grep), fuzzy matching
-
-Tier 2 — Advanced Search & Multi-Step
-Context memory for pronouns & follow-ups
-
-Multi-step pipelines with checkpoints
-
-Advanced filters: size, date, owner, patterns
-
-Tier 3 — Agentic Capabilities
-Self-correction (“Did you mean…?”)
-
-Planning with feedback (recover from errors)
-
-Proactive suggestions (cron jobs for repeated tasks)
-
-🎨 UX: “Her”-Inspired CLI
-Warm, empathetic conversational tone
-
-ANSI colors for commands/warnings/success
-
-ASCII visuals for directory trees, bar charts
-
-Built-in help system (--help or ?)
-
----
-
-## 🐧 openEuler Integration
-- `dnf search <pkg>`, `dnf info <pkg>`, `dnf install <pkg>`
-- `uname -r`, `cat /etc/os-release`
-- Prefer ripgrep if available for performance
-
-🧵 Demo Script (5–7 minutes)
-Tier 1: “copy all PDFs from ~/Downloads to ~/docs” → preview → confirm → success.
-
-Tier 2: “find logs >100MB last 7 days, compress and move to ~/backup/logs” → step checkpoints.
-
-Tier 3: Search with a typo → Samantha suggests correction → retry works. Suggests cron job.
-
-openEuler: “what kernel am I on?” + “install ripgrep and re-run OOM search”.
-
-Demo data lives in demo_data/ for deterministic results.
-
----
-
-## ⏱ One-Day Execution Plan (hour-by-hour)
-- **T+0:00–1:00** — Setup: Repo, env vars, test API, scaffold core modules.
-- **T+1:00–3:00** — Tier 1: Commands, safety, undo, search.
-- **T+3:00–6:00** — Tier 2: Memory, pipelines, filters.
-- **T+6:00–8:00** — Tier 3: Self-correction, replanning, proactive suggestions.
-- **T+8:00–9:00** — openEuler integration: dnf, kernel queries, perf optimisations.
-- **T+9:00–10:00** — Polish: UX tone, colors, help, demo rehearsal.
-
----
-
-## 🔒 Safety Rules
-- Always preview before execution
-- Double confirmation for destructive ops
-- Denylist sensitive paths
-- Maintain undo log for recovery
-
----
-
-## 🧱 Minimal CLI Skeleton
-```python
-# src/cli/samantha.py
-import argparse
-from src.core import nl2cmd, executor, memory, safety
-
-def main():
-    ap = argparse.ArgumentParser()
-    ap.add_argument("prompt", nargs="+")
-    args = ap.parse_args()
-    user_intent = " ".join(args.prompt)
-
-    plan = nl2cmd.make_plan(user_intent)
-    plan = safety.sanitize_plan(plan)
-    executor.preview(plan)
-    if executor.confirm(plan):
-        results = executor.run(plan)
-        memory.update(results=results, plan=plan)
-        executor.summarize(results)
-
-if __name__ == "__main__":
-    main()
+**Tier 1 Demo (30 seconds):**
+```bash
+# Basic operations with safety
+python -m src.cli.samantha --mock "copy presentation-slides.pdf from demo_data to backup"
 ```
 
----
+**Tier 2 Demo (45 seconds):**
+```bash
+# Advanced multi-step intelligence
+python -m src.cli.samantha --mock "find pdf files in demo_data then move them to backup"
+```
 
-## 📝 Deliverables Checklist
-- [ ] Tier 1–3 implemented
-- [ ] openEuler commands working
-- [ ] Safety features enforced
-- [ ] Demo script rehearsed
-- [ ] README + Makefile complete
+**Tier 3 Demo (45 seconds):**
+```bash
+# Content-aware search (the wow factor)
+python -m src.cli.samantha --mock "search for budget in demo_data"
+```
 
----
-
-## 👥 Team Roles
-- **Team lead & architect** – stand-ups, module integration, progress tracking
-- **NL & model integration** – prompts, chat model calls, output parsing
-- **Terminal integration** – file ops, safety checks, core commands
-- **Search & agentic behaviour** – advanced search, pipelines, self-correction
-- **UX & persona** – conversational tone, ANSI UI, CLI polish
-
----
-
-## 🙌 Credits
-Built by a five-member team during OpenEuler Challenge Week.
-
----
-
-**Would you like me to also generate stub `.py` files with TODOs** so you can `git clone` + `touch` everything and start coding immediately without wasting time on scaffolding?
-
-
-
-
-
-
+**Total Demo Time: 2.5 minutes** - Perfect for judge presentations!
