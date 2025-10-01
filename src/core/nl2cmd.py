@@ -148,6 +148,21 @@ def nl_to_plan(text: str, history: List[Dict[str, str]] = None) -> Dict:
         [f"{item['role'].capitalize()}: {item['content']}" for item in (history or [])])
     full_prompt = f"--- Conversation History ---\n{history_text}\n\n--- Current Request ---\n{text}"
 
+    import re
+
+    def extract_typo_correction(assumptions):
+        # Looks for patterns like: "likely a typo for 'budget'" or "probably meant 'budget'"
+        for a in assumptions:
+            # Common pattern: "likely a typo for 'budget'"
+            m = re.search(r"likely a typo for '([^']+)'", a, re.IGNORECASE)
+            if m:
+                return m.group(1)
+            # Alternative: "probably meant 'budget'"
+            m = re.search(r"probably meant '([^']+)'", a, re.IGNORECASE)
+            if m:
+                return m.group(1)
+        return None
+
     for _ in range(MAX_RETRIES):
         try:
             response = client.chat.completions.create(
@@ -165,7 +180,20 @@ def nl_to_plan(text: str, history: List[Dict[str, str]] = None) -> Dict:
 
             plan = json.loads(content)
 
+            # --- Correction logic: if typo correction is mentioned in assumptions, update steps ---
             if _validate_plan_structure(plan):
+                correction = extract_typo_correction(plan["assumptions"])
+                if correction:
+                    # Replace the typo in the args of relevant steps
+                    for step in plan["steps"]:
+                        # Only update if the step is a search or similar
+                        if step["cmd"] in ["search_in_files", "find_files"] and step["args"]:
+                            # Replace the first arg if it matches the typo (i.e., not the correction)
+                            typo = text
+                            # Try to extract the typo from the step arg (if it's not the correction)
+                            # For now, if the arg is not the correction, replace it
+                            if correction not in step["args"][0]:
+                                step["args"][0] = correction
                 return plan
             else:
                 # Invalid structure, retry
