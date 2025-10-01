@@ -190,11 +190,11 @@ The `demo_data/` directory contains curated test files:
 ## 👥 **Team CodersBlue**
 
 **Team Members:**
-- **Khalid Elbagir** - Team Lead & Architecture
-- **Zayn Sharif** - AI/NLP Integration & Core Planning
-- **Adam Azeb** - Terminal Operations & Safety Systems
-- **Abdulwahid Yaich** - Advanced Search & Agentic Behavior
-- **Nabeel Ahmad** - UX Design & Persona Development
+- **Khalid Elbagir**
+- **Zayn Sharif**
+- **Adam Azeb**
+- **Abdulwahid Yaich**
+- **Nabeel Ahmad**
 
 **Project Highlights:**
 - **Modular Architecture**: Clean separation enabling parallel development
