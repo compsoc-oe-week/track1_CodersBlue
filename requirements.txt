@@ -1,0 +1,22 @@
+# Samantha OS Assistant - Requirements
+# Core dependencies for the AI terminal assistant
+
+# AI/LLM Integration
+openai>=1.0.0
+
+# Environment Management
+python-dotenv>=1.0.0
+
+# Optional: Enhanced terminal colors (if needed)
+# colorama>=0.4.6
+
+# Development/Testing (optional)
+# pytest>=7.0.0
+# pytest-cov>=4.0.0
+
+# Note: Most functionality uses Python standard library
+# - os, shutil, subprocess for file operations
+# - argparse for CLI interface
+# - json, re for text processing
+# - difflib for fuzzy matching
+# - datetime for file filtering
