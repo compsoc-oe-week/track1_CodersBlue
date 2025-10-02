@@ -1,79 +1,105 @@
 # 🤖 Samantha — An AI Terminal Assistant for openEuler
-> **OpenEuler Challenge Week Hackathon** | **Team: CodersBlue** | **All Tiers Implemented** 🏆
+> **OpenEuler Challenge Week Hackathon** | **Team: CodersBlue** 🏆
 
-**Samantha** is a revolutionary "Her"-inspired AI terminal assistant that transforms natural language into safe, intelligent system commands. Unlike traditional CLIs that force users to learn cryptic syntax, Samantha understands context, recovers from errors, and proactively suggests optimizations.
+## **Project Description**
+
+**Samantha** is a "Her"-inspired AI terminal companion who brings conversational touch to the command line. Instead of needing to understand cryptic commands, Samantha listens to what you want in plain English, understands your intent, and safely gets things done for you—whether that's searching files, organising data, or fixing mistakes. She learns from context, helps you recover from errors, and even offers helpful suggestions. Samantha is more than a tool—she's a helpful partner who makes working with your system feel natural, safe, and easier.
 
 ## 🎯 **Competition Highlights**
 
-**✅ Tier 1 (100% Complete)**: Navigation, file operations, safety confirmations  
-**✅ Tier 2 (100% Complete)**: Advanced search, multi-step operations, contextual understanding  
-**✅ Tier 3 (100% Complete)**: Content-aware search, self-correction, organizational intelligence  
+**✅ Tier 1**: Navigation, file operations, safety confirmations  
+**✅ Tier 2**: Advanced search, multi-step operations, contextual understanding  
+**✅ Tier 3**: Content-aware search, self-correction  
 
 ### **🚀 Standout Features**
 - **Self-Correction**: Fuzzy matching suggests corrections for typos automatically
 - **Content-Aware Search**: Find files by content, not just filename
-- **Multi-Step Intelligence**: "Find PDFs then copy them to backup" works seamlessly  
-- **Proactive Suggestions**: Detects cluttered directories and suggests cleanup
+- **Multi-Step Intelligence**: "Find PDFs then copy them to backup  
 - **Safety-First Design**: All destructive operations require confirmation
 
 ---
 
 ## 🔧 **Quick Start**
 
-### **Installation**
+### **Connect to the Virtual Machine**
+1. Open a Terminal
+2. Connect to the VM
+
 ```bash
-# Clone the repository
+ssh -J <username>@eidf-gateway.epcc.ed.ac.uk <username>@<ip_address>
+```
+
+### **Installation & Docker Setup**
+```bash
+# 1. Clone the repository
 git clone https://github.com/compsoc-oe-week/track1_CodersBlue.git
 cd track1_CodersBlue
 
-# Install dependencies
-pip install -r requirements.txt
+# 2. Build and start the Docker container (in detached mode)
+sudo docker compose build && sudo docker compose up -d
 
-# Test in mock mode (works immediately)
-python -m src.cli.samantha --mock "list files in demo_data"
+# 3. Enter the running container (named 'oe' by default)
+sudo docker exec -it oe bash
 ```
 
-### **Environment Setup (For AI Mode)**
+### **Step-by-Step: Environment Setup & Running Samantha**
 ```bash
-# Create .env file with API configuration
-echo "CODER_BASE_URL=http://your-endpoint:8000/v1" > .env
-echo "CODER_MODEL_NAME=Qwen/Qwen3-Coder-480B-A35B-Instruct-FP8" >> .env
-echo "OPENAI_API_KEY=your-api-key" >> .env
+# 4. (Inside the container) Set up Python virtual environment (recommended)
+cd /work
+python3 -m venv .venv
+source .venv/bin/activate
+cd /work/track1_CodersBlue
+
+# 5. Upgrade pip and install dependencies
+pip install --upgrade pip
+pip install -r requirements.txt || pip install openai python-dotenv colorama
+
+# 6. Set environment variables for AI mode
+export OPENAI_API_KEY=EMPTY
+export CODER_BASE_URL=http://YOUR_SERVER_IP:8000/v1
+export CODER_MODEL_NAME="Qwen/Qwen3-Coder-480B-A35B-Instruct-FP8"
+```
+
+### **Test Samantha**
+```bash
+# 7. Run Samantha (try a test command)
+python -m src.cli.samantha "list files in demo_data"
 ```
 
 ---
 
-## 🎮 **Demo Commands** (Judge-Ready)
+## 🎮 **Demo Commands**
 
 ### **Tier 1: Basic Operations**
 ```bash
 # Navigation and listing
-python -m src.cli.samantha --mock "list files in demo_data"
-python -m src.cli.samantha --mock "go to demo_data"
+python -m src.cli.samantha "list files in demo_data"
 
-# File creation and manipulation  
-python -m src.cli.samantha --mock "create a folder called test_results"
-python -m src.cli.samantha --mock "copy presentation-slides.pdf from demo_data to backup"
+# File deletion (with warning)
+python -m src.cli.samantha “Delete the file demo_data/newfile.txt.”
 ```
 
 ### **Tier 2: Advanced Intelligence**
 ```bash
 # Advanced search with filters
-python -m src.cli.samantha --mock "find pdf files in demo_data"
-python -m src.cli.samantha --mock "find files larger than 1mb in demo_data"
+python -m src.cli.samantha "find pdf files in demo_data"
+python -m src.cli.samantha "find files larger than 1mb in demo_data"
 
 # Multi-step operations (DEMONSTRATES ADVANCED INTELLIGENCE)
-python -m src.cli.samantha --mock "find pdf files in demo_data then move them to backup"
+python -m src.cli.samantha "find pdf files in demo_data then move them to backup"
 ```
 
 ### **Tier 3: AI-Powered Features**
 ```bash
 # Content-aware search (finds files by content, not filename)
-python -m src.cli.samantha --mock "search for budget in demo_data"
+python -m src.cli.samantha"search for buget in demo_data"
 
-# Self-correction and suggestions
-python -m src.cli.samantha --mock "copy file_that_doesnt_exist.txt to backup"
+# Suggestions
+python -m src.cli.samantha "copy file_that_doesnt_exist.txt to backup"
 # → Samantha suggests similar filenames automatically
+
+# Self-correction (Notices that "buget" should be "budget")
+python -m src.cli.samantha "find buget in demo_data"
 ```
 
 ---
