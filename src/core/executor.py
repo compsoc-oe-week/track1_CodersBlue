@@ -8,11 +8,13 @@ UNDO_LOG_FILE = os.path.expanduser("~/.samantha/undo.log")
 # Keep track of the current working directory for the session, start with process CWD
 SESSION_CWD = os.getcwd()
 
+
 def _ensure_log_directory_exists():
     """Ensures that the directory for the undo log exists."""
     log_dir = os.path.dirname(UNDO_LOG_FILE)
     if log_dir and not os.path.exists(log_dir):
         os.makedirs(log_dir)
+
 
 def log_command(command_str: str):
     """Logs a command to the undo log file."""
@@ -23,9 +25,11 @@ def log_command(command_str: str):
 
 # --- Core Command Implementations ---
 
+
 def _resolve_path(path: str) -> str:
     """Resolves a path relative to the session's CWD."""
     return os.path.join(SESSION_CWD, os.path.expanduser(path))
+
 
 def _suggest_best_match(path_not_found: str, match_type: str = 'any') -> str:
     """Suggests a best match for a path that was not found."""
@@ -37,8 +41,9 @@ def _suggest_best_match(path_not_found: str, match_type: str = 'any') -> str:
         all_items = os.listdir(parent_dir)
         candidates = []
         if match_type == 'dir':
-            candidates = [item for item in all_items if os.path.isdir(os.path.join(parent_dir, item))]
-        else: # 'any' (files or dirs)
+            candidates = [item for item in all_items if os.path.isdir(
+                os.path.join(parent_dir, item))]
+        else:  # 'any' (files or dirs)
             candidates = all_items
         best_match = search.find_best_match(target_name, candidates)
         if best_match:
@@ -46,6 +51,7 @@ def _suggest_best_match(path_not_found: str, match_type: str = 'any') -> str:
         return ""
     except OSError:
         return ""
+
 
 def _execute_ls(args, kwargs=None):
     """Lists files and directories."""
@@ -66,6 +72,7 @@ def _execute_ls(args, kwargs=None):
     except OSError as e:
         return f"Error listing directory '{path}': {e}"
 
+
 def _execute_cd(args, kwargs=None):
     """Changes the current working directory for the session."""
     global SESSION_CWD
@@ -84,9 +91,11 @@ def _execute_cd(args, kwargs=None):
     except OSError as e:
         return f"Error changing directory to '{path}': {e}"
 
+
 def _execute_pwd(args, kwargs=None):
     """Prints the current working directory."""
     return f"Current directory: {SESSION_CWD}"
+
 
 def _execute_mkdir(args, kwargs=None):
     """Creates a new directory."""
@@ -94,14 +103,19 @@ def _execute_mkdir(args, kwargs=None):
         return "Error: 'mkdir' requires a directory name."
 
     path = _resolve_path(args[0])
+
     if os.path.exists(path):
-        return f"Error: '{path}' already exists."
+        if os.path.isdir(path):
+            return f"Directory already exists: '{path}'"
+        else:
+            return f"Error: '{path}' exists and is not a directory."
 
     try:
         os.makedirs(path)
         return f"Directory created: '{path}'"
     except OSError as e:
         return f"Error creating directory '{path}': {e}"
+
 
 def _execute_touch(args, kwargs=None):
     """Creates an empty file or updates its timestamp."""
@@ -115,6 +129,7 @@ def _execute_touch(args, kwargs=None):
         return f"File created or updated: '{path}'"
     except OSError as e:
         return f"Error touching file '{path}': {e}"
+
 
 def _execute_cp(args, kwargs=None):
     """Copies one or more files or directories to a destination."""
@@ -133,7 +148,8 @@ def _execute_cp(args, kwargs=None):
             continue
         try:
             if os.path.isdir(src_path):
-                shutil.copytree(src_path, os.path.join(dest_path, os.path.basename(src_path)))
+                shutil.copytree(src_path, os.path.join(
+                    dest_path, os.path.basename(src_path)))
             else:
                 shutil.copy2(src_path, dest_path)
             successes.append(src_path)
@@ -141,10 +157,12 @@ def _execute_cp(args, kwargs=None):
             errors.append(f"Failed to copy '{src_path}': {e}")
     output = []
     if successes:
-        output.append(f"Successfully copied {len(successes)} item(s) to '{dest_path}'.")
+        output.append(
+            f"Successfully copied {len(successes)} item(s) to '{dest_path}'.")
     if errors:
         output.append("Errors occurred:\n" + "\n".join(errors))
     return "\n".join(output) if output else "No items were copied."
+
 
 def _execute_mv(args, kwargs=None):
     """Moves/renames one or more files or directories to a destination."""
@@ -168,10 +186,12 @@ def _execute_mv(args, kwargs=None):
             errors.append(f"Failed to move '{src_path}': {e}")
     output = []
     if successes:
-        output.append(f"Successfully moved {len(successes)} item(s) to '{dest_path}'.")
+        output.append(
+            f"Successfully moved {len(successes)} item(s) to '{dest_path}'.")
     if errors:
         output.append("Errors occurred:\n" + "\n".join(errors))
     return "\n".join(output) if output else "No items were moved."
+
 
 def _execute_rm(args, kwargs=None):
     """Removes one or more files or directories."""
@@ -183,13 +203,15 @@ def _execute_rm(args, kwargs=None):
     for path in paths_to_delete:
         if not os.path.exists(path):
             suggestion = _suggest_best_match(path)
-            errors.append(f"Path '{os.path.abspath(path)}' not found.{suggestion}")
+            errors.append(
+                f"Path '{os.path.abspath(path)}' not found.{suggestion}")
         else:
             existing_paths.append(path)
     if not existing_paths:
         return "Errors occurred:\n" + "\n".join(errors)
     abs_paths_to_delete = [os.path.abspath(p) for p in existing_paths]
-    confirm = input(f"Are you sure you want to permanently delete:\n" + "\n".join(abs_paths_to_delete) + "\n(y/n): ").lower().strip()
+    confirm = input(f"Are you sure you want to permanently delete:\n" +
+                    "\n".join(abs_paths_to_delete) + "\n(y/n): ").lower().strip()
     if confirm != 'y':
         return f"Deletion of {len(existing_paths)} item(s) cancelled."
     successes = []
@@ -210,6 +232,7 @@ def _execute_rm(args, kwargs=None):
         output.append("Errors occurred:\n" + "\n".join(errors))
     return "\n".join(output) if output else "No items were removed."
 
+
 def _execute_find_files(args, kwargs=None):
     """Finds files by name pattern, with optional advanced filters."""
     if kwargs is None:
@@ -229,6 +252,7 @@ def _execute_find_files(args, kwargs=None):
     except Exception as e:
         return f"Error finding files: {e}"
 
+
 def _execute_search_in_files(args, kwargs=None):
     """Searches for content within files."""
     if len(args) < 1:
@@ -243,6 +267,7 @@ def _execute_search_in_files(args, kwargs=None):
     except Exception as e:
         return f"Error searching in files: {e}"
 
+
 def _execute_bash(args, kwargs=None):
     """Executes a bash command."""
     import subprocess
@@ -251,7 +276,8 @@ def _execute_bash(args, kwargs=None):
     command = " ".join(args)
     try:
         # Using shell=True for simplicity, but be aware of security implications.
-        result = subprocess.run(command, capture_output=True, text=True, check=False, shell=True)
+        result = subprocess.run(
+            command, capture_output=True, text=True, check=False, shell=True)
         output = result.stdout.strip()
         error = result.stderr.strip()
         if result.returncode != 0:
@@ -261,6 +287,7 @@ def _execute_bash(args, kwargs=None):
         return output
     except Exception as e:
         return f"Failed to execute bash command '{command}': {e}"
+
 
 COMMAND_MAP = {
     "ls": _execute_ls,
@@ -275,6 +302,7 @@ COMMAND_MAP = {
     "search_in_files": _execute_search_in_files,
     "execute_bash": _execute_bash,
 }
+
 
 def execute_with_recovery(command_name, args, kwargs):
     """
@@ -301,7 +329,8 @@ def execute_with_recovery(command_name, args, kwargs):
                     path_to_check = args[0]
 
                 if path_to_check:
-                    suggestion = _suggest_best_match(_resolve_path(path_to_check))
+                    suggestion = _suggest_best_match(
+                        _resolve_path(path_to_check))
                     if suggestion:
                         # In a more advanced agent, it might auto-apply this or ask the user.
                         # For now, we'll just add it to the error output.
@@ -348,10 +377,13 @@ def preview(plan: dict):
         print(f"{i}. {cmd} {args}")
         print(f"   Reason: {why}")
 
+
 def confirm():
     """Asks the user to confirm (y/n) before proceeding."""
-    response = input("\nShould I proceed with this plan? (y/n): ").lower().strip()
+    response = input(
+        "\nShould I proceed with this plan? (y/n): ").lower().strip()
     return response == 'y'
+
 
 def run(plan: dict):
     """
@@ -364,12 +396,36 @@ def run(plan: dict):
         return {"summary": "User cancelled.", "results": []}
 
     results = []
+    step_outputs = []  # Store outputs of each step for substitution
     last_step_output_files = []
 
-    for step in plan.get("steps", []):
+    for step_idx, step in enumerate(plan.get("steps", [])):
         command_name = step.get("cmd")
         args = step.get("args", [])
         kwargs = step.get("kwargs", {})
+
+        # --- Placeholder Substitution: {result_of_step_#} ---
+        substituted_args = []
+        for arg in args:
+            if isinstance(arg, str) and arg.startswith("{result_of_step_") and arg.endswith("}"):
+                # Extract step number
+                try:
+                    ref_idx = int(arg[len("{result_of_step_"):-1]) - 1
+                    if 0 <= ref_idx < len(step_outputs):
+                        # If the referenced output is a list, expand it; else, use as is
+                        ref_output = step_outputs[ref_idx]
+                        if isinstance(ref_output, list):
+                            substituted_args.extend(ref_output)
+                        else:
+                            substituted_args.append(ref_output)
+                    else:
+                        substituted_args.append(arg)  # fallback: leave as is
+                except Exception:
+                    substituted_args.append(arg)
+            else:
+                substituted_args.append(arg)
+        args = substituted_args
+        # --- End Placeholder Substitution ---
 
         # --- Pronoun Resolution ---
         resolved_args = []
@@ -391,18 +447,26 @@ def run(plan: dict):
         # --- End Pronoun Resolution ---
 
         if not command_name:
-            results.append({"status": "error", "output": "Step is missing a command."})
+            results.append(
+                {"status": "error", "output": "Step is missing a command."})
+            step_outputs.append(None)
             continue
 
         execution_result = execute_with_recovery(command_name, args, kwargs)
         print(execution_result["output"])
         results.append(execution_result)
 
+        # Store output for future step reference
+        step_outputs.append(args if command_name in [
+                            "mv", "cp"] else execution_result.get("output"))
+
         if execution_result["status"] == "success":
             output = execution_result["output"]
             if command_name == "find_files" and isinstance(output, str) and output.startswith("Found files:\n"):
                 file_list = output.strip().split('\n')[1:]
                 last_step_output_files = [f for f in file_list if f]
+                # Also update step_outputs for this step to be the file list
+                step_outputs[-1] = last_step_output_files
             else:
                 last_step_output_files = []
 
@@ -415,6 +479,7 @@ def run(plan: dict):
             break
 
     return {"summary": "Plan execution finished.", "results": results}
+
 
 def summarize(execution_results: dict):
     """Prints a summary of the execution results."""
