@@ -3,7 +3,7 @@
 
 ## **Project Description**
 
-**Samantha** is a "Her"-inspired AI terminal companion who brings conversational touch to the command line. Instead of needing to understand cryptic commands, Samantha listens to what you want in plain English, understands your intent, and safely gets things done for you—whether that's searching files, organising data, or fixing mistakes. She learns from context, helps you recover from errors, and even offers helpful suggestions. Samantha is more than a tool—she's a helpful partner who makes working with your system feel natural, safe, and easier.
+**Samantha** is an AI terminal companion who brings conversational touch to the command line. Instead of needing to understand cryptic commands, Samantha listens to what you want in plain English, understands your intent, and safely gets things done for you—whether that's searching files, organising data, or fixing mistakes. She learns from context, helps you recover from errors, and even offers helpful suggestions. Samantha is more than a tool—she's a helpful partner who makes working with your system feel natural, safe, and easier.
 
 ## 🎯 **Competition Highlights**
 
