@@ -103,8 +103,12 @@ def _execute_mkdir(args, kwargs=None):
         return "Error: 'mkdir' requires a directory name."
 
     path = _resolve_path(args[0])
+
     if os.path.exists(path):
-        return f"Error: '{path}' already exists."
+        if os.path.isdir(path):
+            return f"Directory already exists: '{path}'"
+        else:
+            return f"Error: '{path}' exists and is not a directory."
 
     try:
         os.makedirs(path)
