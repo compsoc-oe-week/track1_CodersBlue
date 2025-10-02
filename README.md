@@ -271,4 +271,8 @@ python -m src.cli.samantha "find pdf files in demo_data then move them to backup
 ```bash
 # Content-aware search
 python -m src.cli.samantha "search for budget in demo_data"
+<<<<<<< HEAD
 ```
+=======
+```
+>>>>>>> c7a199ed765e46351cc9c0556f9d756cac1d3033
