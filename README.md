@@ -116,7 +116,7 @@ src/
 │   ├── search.py            # Advanced file search with filters
 │   ├── memory.py            # Conversation context and history
 │   ├── safety.py            # Path validation and confirmations
-│   └── suggestions.py       # Proactive organizational intelligence
+│   └── suggestions.py       # Proactive organisational intelligence
 ├── ui/
 │   ├── persona.py           # "Her"-inspired conversational tone
 │   └── colors.py            # Beautiful ANSI terminal output
@@ -190,7 +190,7 @@ The `demo_data/` directory contains curated test files:
 
 ---
 
-## 🏆 **Why Samantha Wins**
+## 🏆 **Why Samantha**
 
 ### **Functionality (40% of judging criteria)**
 - ✅ **All Tiers Complete**: Every requirement implemented and tested
@@ -233,7 +233,7 @@ The `demo_data/` directory contains curated test files:
 ## 📋 **Project Deliverables** ✅
 
 ### **✅ Complete Implementation**
-- ✅ **Full Repository**: All source code professionally organized and documented
+- ✅ **Full Repository**: All source code professionally organised and documented
 - ✅ **Team Attribution**: Complete team member names with roles and contributions
 - ✅ **Project Description**: Revolutionary AI terminal assistant with comprehensive feature set
 - ✅ **Installation Guide**: Clear step-by-step instructions for setup and execution
@@ -248,30 +248,27 @@ The `demo_data/` directory contains curated test files:
 
 ---
 
-## 🎯 **Live Demo Script** (Judge-Ready)
+## 🎯 **Demos**
 
-**Opening (30 seconds):**
+**Opening:**
 ```bash
-# Show the warm, intelligent persona
-python -m src.cli.samantha --mock "list files in demo_data"
+python -m src.cli.samantha "list files in demo_data"
 ```
 
-**Tier 1 Demo (30 seconds):**
+**Tier 1 Demo:**
 ```bash
 # Basic operations with safety
-python -m src.cli.samantha --mock "copy presentation-slides.pdf from demo_data to backup"
+python -m src.cli.samantha "copy presentation-slides.pdf from demo_data to backup"
 ```
 
-**Tier 2 Demo (45 seconds):**
+**Tier 2 Demo:**
 ```bash
 # Advanced multi-step intelligence
-python -m src.cli.samantha --mock "find pdf files in demo_data then move them to backup"
+python -m src.cli.samantha "find pdf files in demo_data then move them to backup"
 ```
 
-**Tier 3 Demo (45 seconds):**
+**Tier 3 Demo:**
 ```bash
-# Content-aware search (the wow factor)
-python -m src.cli.samantha --mock "search for budget in demo_data"
+# Content-aware search
+python -m src.cli.samantha "search for budget in demo_data"
 ```
-
-**Total Demo Time: 2.5 minutes** - Perfect for judge presentations!
